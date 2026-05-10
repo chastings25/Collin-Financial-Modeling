@@ -742,6 +742,35 @@ header {
 .sens-high { color: var(--green); }
 .sens-low  { color: var(--red); }
 
+/* ── Scenario tabs ── */
+.scenario-tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+.scenario-tab {
+  flex: 1; padding: 6px 4px; border: 1px solid var(--border);
+  border-radius: 6px; background: var(--surface2); color: var(--muted);
+  font-family: var(--mono); font-size: 11px; font-weight: 500;
+  cursor: pointer; transition: all 0.15s; text-align: center;
+}
+.scenario-tab.active-bear { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.5); color: var(--red); }
+.scenario-tab.active-base { background: rgba(79,156,249,0.12); border-color: rgba(79,156,249,0.5); color: var(--accent); }
+.scenario-tab.active-bull { background: rgba(34,197,94,0.12); border-color: rgba(34,197,94,0.5); color: var(--green); }
+
+/* ── Price range banner ── */
+.price-range-banner {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 9px; overflow: hidden;
+}
+.price-range-item { padding: 14px 16px; text-align: center; cursor: pointer; transition: background 0.15s; }
+.price-range-item:hover { background: rgba(255,255,255,0.03); }
+.price-range-item.active-scenario { background: rgba(79,156,249,0.07); }
+.price-range-item + .price-range-item { border-left: 1px solid var(--border); }
+.price-range-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+.price-range-value { font-family: var(--mono); font-size: 20px; font-weight: 600; line-height: 1; }
+.price-range-value.bear { color: var(--red); }
+.price-range-value.base { color: var(--accent); }
+.price-range-value.bull { color: var(--green); }
+.price-range-sub { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 3px; }
+
 /* ── Util ── */
 .hidden { display: none !important; }
 </style>
@@ -1427,38 +1456,23 @@ function fmtDec(v) {
 
 // ── DCF Valuation ─────────────────────────────────────────────────────────
 
-let _dcfAssumptions = null;
+let _scenarios = { bear: null, base: null, bull: null };
+let _activeScenario = 'base';
 
 function _dcfDefaults(data) {
   const isArr = data.income_statements.sort((a,b) => a.fiscal_year.localeCompare(b.fiscal_year));
   const cfArr = data.cash_flow_statements.sort((a,b) => a.fiscal_year.localeCompare(b.fiscal_year));
-  const last  = isArr[isArr.length - 1] || {};
-  const prev  = isArr[isArr.length - 2] || {};
+  const last = isArr[isArr.length - 1] || {};
+  const prev = isArr[isArr.length - 2] || {};
 
-  // Revenue growth: avg of last 2 YoY, floor at 2%
   const revGrowth = (last.revenue && prev.revenue && prev.revenue !== 0)
-    ? Math.max(0.02, (last.revenue - prev.revenue) / prev.revenue)
-    : 0.05;
-
-  // EBITDA margin from most recent year
-  const ebitdaMargin = (last.ebitda && last.revenue)
-    ? Math.max(0.05, last.ebitda / last.revenue) : 0.15;
-
-  // D&A % of revenue
-  const daMargin = (last.depreciation_amortization && last.revenue)
-    ? last.depreciation_amortization / last.revenue : 0.04;
-
-  // CapEx % of revenue (from CF; capex is typically negative)
+    ? Math.max(0.02, (last.revenue - prev.revenue) / prev.revenue) : 0.05;
+  const ebitdaMargin = (last.ebitda && last.revenue) ? Math.max(0.05, last.ebitda / last.revenue) : 0.15;
+  const daMargin = (last.depreciation_amortization && last.revenue) ? last.depreciation_amortization / last.revenue : 0.04;
   const lastCF = cfArr[cfArr.length - 1] || {};
-  const capexMargin = (lastCF.capital_expenditures && last.revenue)
-    ? Math.abs(lastCF.capital_expenditures) / last.revenue : 0.04;
-
-  // Tax rate from most recent year
+  const capexMargin = (lastCF.capital_expenditures && last.revenue) ? Math.abs(lastCF.capital_expenditures) / last.revenue : 0.04;
   const taxRate = (last.income_tax && last.pretax_income && last.pretax_income > 0)
     ? Math.min(0.35, Math.max(0.10, last.income_tax / last.pretax_income)) : 0.21;
-
-  // NWC % of revenue change (simplified to 1.5%)
-  const nwcPct = 0.015;
 
   return {
     revGrowth1: +(revGrowth * 100).toFixed(1),
@@ -1469,7 +1483,7 @@ function _dcfDefaults(data) {
     ebitdaMargin: +(ebitdaMargin * 100).toFixed(1),
     daMargin:     +(daMargin * 100).toFixed(1),
     capexMargin:  +(capexMargin * 100).toFixed(1),
-    nwcPct:       +(nwcPct * 100).toFixed(1),
+    nwcPct:       1.5,
     taxRate:      +(taxRate * 100).toFixed(1),
     wacc:         10.0,
     termGrowth:   2.5,
@@ -1478,84 +1492,156 @@ function _dcfDefaults(data) {
   };
 }
 
+function _bearDefaults(base) {
+  return {
+    ...base,
+    revGrowth1: +(base.revGrowth1 * 0.6).toFixed(1),
+    revGrowth2: +(base.revGrowth2 * 0.6).toFixed(1),
+    revGrowth3: +(base.revGrowth3 * 0.6).toFixed(1),
+    revGrowth4: +(base.revGrowth4 * 0.6).toFixed(1),
+    revGrowth5: +(base.revGrowth5 * 0.6).toFixed(1),
+    ebitdaMargin: +(Math.max(2, base.ebitdaMargin * 0.82)).toFixed(1),
+    wacc:         +(base.wacc + 1.5).toFixed(1),
+    termGrowth:   +(Math.max(0.5, base.termGrowth - 0.75)).toFixed(1),
+  };
+}
+
+function _bullDefaults(base) {
+  return {
+    ...base,
+    revGrowth1: +(base.revGrowth1 * 1.5).toFixed(1),
+    revGrowth2: +(base.revGrowth2 * 1.5).toFixed(1),
+    revGrowth3: +(base.revGrowth3 * 1.5).toFixed(1),
+    revGrowth4: +(base.revGrowth4 * 1.5).toFixed(1),
+    revGrowth5: +(base.revGrowth5 * 1.5).toFixed(1),
+    ebitdaMargin: +(base.ebitdaMargin * 1.18).toFixed(1),
+    wacc:         +(Math.max(3, base.wacc - 1.5)).toFixed(1),
+    termGrowth:   +(base.termGrowth + 0.75).toFixed(1),
+  };
+}
+
 function _netDebt(data) {
   const bsArr = data.balance_sheets.sort((a,b) => a.fiscal_year.localeCompare(b.fiscal_year));
   const bs = bsArr[bsArr.length - 1] || {};
-  const debt = (bs.long_term_debt || 0) + (bs.short_term_debt || 0);
-  const cash = bs.cash_and_equivalents || 0;
-  return +(debt - cash).toFixed(0);
+  return +((bs.long_term_debt || 0) + (bs.short_term_debt || 0) - (bs.cash_and_equivalents || 0)).toFixed(0);
 }
 
 function _getNum(id) { return parseFloat(document.getElementById(id).value) || 0; }
 
-function calcDCF(data) {
-  const a = {
-    revGrowth: [1,2,3,4,5].map(i => _getNum(`dcf-rg${i}`) / 100),
-    ebitdaMargin: _getNum('dcf-em') / 100,
-    daMargin:     _getNum('dcf-da') / 100,
-    capexMargin:  _getNum('dcf-cx') / 100,
-    nwcPct:       _getNum('dcf-nwc') / 100,
-    taxRate:      _getNum('dcf-tax') / 100,
-    wacc:         _getNum('dcf-wacc') / 100,
-    termGrowth:   _getNum('dcf-tg') / 100,
-    netDebt:      _getNum('dcf-nd'),
-    sharesDil:    _getNum('dcf-sh'),
+function _readInputsToScenario() {
+  return {
+    revGrowth1: _getNum('dcf-rg1'), revGrowth2: _getNum('dcf-rg2'),
+    revGrowth3: _getNum('dcf-rg3'), revGrowth4: _getNum('dcf-rg4'), revGrowth5: _getNum('dcf-rg5'),
+    ebitdaMargin: _getNum('dcf-em'), daMargin: _getNum('dcf-da'),
+    capexMargin: _getNum('dcf-cx'), nwcPct: _getNum('dcf-nwc'), taxRate: _getNum('dcf-tax'),
+    wacc: _getNum('dcf-wacc'), termGrowth: _getNum('dcf-tg'),
+    netDebt: _getNum('dcf-nd'), sharesDil: _getNum('dcf-sh'),
   };
+}
 
-  const isArr = data.income_statements.sort((a,b) => a.fiscal_year.localeCompare(b.fiscal_year));
-  const baseRev = (isArr[isArr.length - 1] || {}).revenue || 0;
+function _loadScenarioToInputs(d) {
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = (v ?? ''); };
+  set('dcf-rg1', d.revGrowth1); set('dcf-rg2', d.revGrowth2); set('dcf-rg3', d.revGrowth3);
+  set('dcf-rg4', d.revGrowth4); set('dcf-rg5', d.revGrowth5);
+  set('dcf-em', d.ebitdaMargin); set('dcf-da', d.daMargin); set('dcf-cx', d.capexMargin);
+  set('dcf-nwc', d.nwcPct); set('dcf-tax', d.taxRate);
+  set('dcf-wacc', d.wacc); set('dcf-tg', d.termGrowth);
+  set('dcf-nd', d.netDebt); set('dcf-sh', d.sharesDil || '');
+}
+
+function _calcDCFCore(a, data) {
+  const isArr = data.income_statements.sort((x,y) => x.fiscal_year.localeCompare(y.fiscal_year));
+  const baseRev  = (isArr[isArr.length - 1] || {}).revenue || 0;
   const baseYear = parseInt((isArr[isArr.length - 1] || {}).fiscal_year || new Date().getFullYear());
 
-  // Project 5 years
   const projections = [];
-  let rev = baseRev;
   let prevRev = baseRev;
   for (let i = 0; i < 5; i++) {
-    rev = prevRev * (1 + a.revGrowth[i]);
-    const ebitda   = rev * a.ebitdaMargin;
-    const da       = rev * a.daMargin;
-    const ebit     = ebitda - da;
-    const nopat    = ebit * (1 - a.taxRate);
-    const capex    = rev * a.capexMargin;
-    const dnwc     = (rev - prevRev) * a.nwcPct;
-    const fcf      = nopat + da - capex - dnwc;
-    const pvFactor = Math.pow(1 + a.wacc, -(i + 1));
-    projections.push({
-      year: baseYear + i + 1, rev, ebitda, ebit, nopat, da, capex, dnwc, fcf,
-      pvFcf: fcf * pvFactor,
-    });
+    const rev    = prevRev * (1 + a.revGrowth[i]);
+    const ebitda = rev * a.ebitdaMargin;
+    const da     = rev * a.daMargin;
+    const ebit   = ebitda - da;
+    const nopat  = ebit * (1 - a.taxRate);
+    const capex  = rev * a.capexMargin;
+    const dnwc   = (rev - prevRev) * a.nwcPct;
+    const fcf    = nopat + da - capex - dnwc;
+    projections.push({ year: baseYear + i + 1, rev, ebitda, ebit, nopat, da, capex, dnwc, fcf,
+      pvFcf: fcf * Math.pow(1 + a.wacc, -(i + 1)) });
     prevRev = rev;
   }
 
-  const sumPvFcf = projections.reduce((s, p) => s + p.pvFcf, 0);
-
-  // Terminal value (Gordon Growth Model)
-  const termFCF  = projections[4].fcf * (1 + a.termGrowth);
-  const termVal  = (a.wacc - a.termGrowth) > 0 ? termFCF / (a.wacc - a.termGrowth) : 0;
+  const sumPvFcf  = projections.reduce((s, p) => s + p.pvFcf, 0);
+  const termFCF   = projections[4].fcf * (1 + a.termGrowth);
+  const termVal   = (a.wacc - a.termGrowth) > 0.001 ? termFCF / (a.wacc - a.termGrowth) : 0;
   const pvTermVal = termVal * Math.pow(1 + a.wacc, -5);
-
-  const ev           = sumPvFcf + pvTermVal;
-  const equityVal    = ev - a.netDebt;
+  const ev        = sumPvFcf + pvTermVal;
+  const equityVal = ev - a.netDebt;
   const impliedPrice = (a.sharesDil && a.sharesDil > 0) ? equityVal / a.sharesDil : null;
 
   return { projections, sumPvFcf, termVal, pvTermVal, ev, equityVal, impliedPrice, a, baseYear };
 }
 
+function calcDCFFromDefaults(d, data) {
+  const a = {
+    revGrowth: [d.revGrowth1, d.revGrowth2, d.revGrowth3, d.revGrowth4, d.revGrowth5].map(v => v / 100),
+    ebitdaMargin: d.ebitdaMargin / 100, daMargin: d.daMargin / 100,
+    capexMargin: d.capexMargin / 100, nwcPct: d.nwcPct / 100, taxRate: d.taxRate / 100,
+    wacc: d.wacc / 100, termGrowth: d.termGrowth / 100,
+    netDebt: d.netDebt, sharesDil: d.sharesDil,
+  };
+  return _calcDCFCore(a, data);
+}
+
+function heatColor(v, min, max) {
+  if (!isFinite(v) || min === max) return '';
+  const t = Math.max(0, Math.min(1, (v - min) / (max - min)));
+  if (t < 0.5) {
+    const intensity = (0.5 - t) * 2;
+    return `background:rgba(239,68,68,${(intensity * 0.25).toFixed(2)})`;
+  }
+  const intensity = (t - 0.5) * 2;
+  return `background:rgba(34,197,94,${(intensity * 0.25).toFixed(2)})`;
+}
+
+function switchScenario(name) {
+  _scenarios[_activeScenario] = _readInputsToScenario();
+  _activeScenario = name;
+  _loadScenarioToInputs(_scenarios[name]);
+  ['bear','base','bull'].forEach(s => {
+    const btn = document.getElementById('scenario-tab-' + s);
+    if (btn) btn.className = 'scenario-tab' + (_activeScenario === s ? ' active-' + s : '');
+  });
+  const lbl = document.getElementById('dcf-scenario-label');
+  if (lbl) {
+    lbl.textContent = name.charAt(0).toUpperCase() + name.slice(1);
+    lbl.style.color = { bear: 'var(--red)', base: 'var(--accent)', bull: 'var(--green)' }[name];
+  }
+  refreshDCF();
+}
+
 function renderValuation(data) {
-  if (!_dcfAssumptions) _dcfAssumptions = _dcfDefaults(data);
-  const d = _dcfAssumptions;
+  const base = _dcfDefaults(data);
+  if (!_scenarios.base) _scenarios.base = base;
+  if (!_scenarios.bear) _scenarios.bear = _bearDefaults(_scenarios.base);
+  if (!_scenarios.bull) _scenarios.bull = _bullDefaults(_scenarios.base);
+
+  const d = _scenarios[_activeScenario];
   const isArr = data.income_statements.sort((a,b) => a.fiscal_year.localeCompare(b.fiscal_year));
   const lastIS = isArr[isArr.length - 1] || {};
   const baseYear = parseInt(lastIS.fiscal_year || new Date().getFullYear());
   const units = data.metadata.units;
+  const scenarioColor = { bear: 'var(--red)', base: 'var(--accent)', bull: 'var(--green)' }[_activeScenario];
 
-  const el = document.getElementById('tab-valuation');
-  el.innerHTML = `
+  document.getElementById('tab-valuation').innerHTML = `
   <div class="dcf-layout">
-
-    <!-- Assumptions panel -->
     <div class="dcf-assumptions">
-      <h3>DCF Assumptions</h3>
+      <h3>DCF Assumptions — <span id="dcf-scenario-label" style="color:${scenarioColor}">${_activeScenario.charAt(0).toUpperCase() + _activeScenario.slice(1)}</span></h3>
+
+      <div class="scenario-tabs">
+        <button class="scenario-tab${_activeScenario==='bear'?' active-bear':''}" id="scenario-tab-bear" onclick="switchScenario('bear')">Bear</button>
+        <button class="scenario-tab${_activeScenario==='base'?' active-base':''}" id="scenario-tab-base" onclick="switchScenario('base')">Base</button>
+        <button class="scenario-tab${_activeScenario==='bull'?' active-bull':''}" id="scenario-tab-bull" onclick="switchScenario('bull')">Bull</button>
+      </div>
 
       <div class="assumption-group">
         <div class="assumption-group-label">Revenue Growth</div>
@@ -1623,10 +1709,9 @@ function renderValuation(data) {
         </div>
       </div>
 
-      <button class="btn-reset-dcf" onclick="resetDCF()">↺ Reset to Defaults</button>
+      <button class="btn-reset-dcf" onclick="resetDCF()">↺ Reset All Scenarios</button>
     </div>
 
-    <!-- Main results -->
     <div class="dcf-main" id="dcf-results"></div>
   </div>`;
 
@@ -1635,15 +1720,46 @@ function renderValuation(data) {
 
 function refreshDCF() {
   if (!_data) return;
-  const r = calcDCF(_data);
-  const units = _data.metadata.units;
-  const fmt = v => v === null ? '—' : v.toLocaleString('en-US', { maximumFractionDigits: 0 });
-  const fmtD = v => v === null ? '—' : v.toFixed(2);
+  _scenarios[_activeScenario] = _readInputsToScenario();
 
-  // KPIs
+  const rBear = calcDCFFromDefaults(_scenarios.bear, _data);
+  const rBase = calcDCFFromDefaults(_scenarios.base, _data);
+  const rBull = calcDCFFromDefaults(_scenarios.bull, _data);
+  const r = { bear: rBear, base: rBase, bull: rBull }[_activeScenario];
+
+  const units = _data.metadata.units;
+  const fmt  = v => (v === null || !isFinite(v)) ? '—' : v.toLocaleString('en-US', { maximumFractionDigits: 0 });
+  const fmtD = v => (v === null || !isFinite(v)) ? '—' : v.toFixed(2);
+  const fmtP = v => (v !== null && isFinite(v)) ? '$' + fmtD(v) : '—';
+
+  // ── Scenario range banner ──────────────────────────────────────────────────
+  const priceBanner = `
+  <div class="dcf-card">
+    <h3>Scenario Range <span class="tag">Implied Share Price — click to switch active scenario</span></h3>
+    <div class="price-range-banner">
+      <div class="price-range-item${_activeScenario==='bear'?' active-scenario':''}" onclick="switchScenario('bear')">
+        <div class="price-range-label">Bear</div>
+        <div class="price-range-value bear">${fmtP(rBear.impliedPrice)}</div>
+        <div class="price-range-sub">WACC ${_scenarios.bear.wacc.toFixed(1)}% · TGR ${_scenarios.bear.termGrowth.toFixed(1)}%</div>
+      </div>
+      <div class="price-range-item${_activeScenario==='base'?' active-scenario':''}" onclick="switchScenario('base')">
+        <div class="price-range-label">Base</div>
+        <div class="price-range-value base">${fmtP(rBase.impliedPrice)}</div>
+        <div class="price-range-sub">WACC ${_scenarios.base.wacc.toFixed(1)}% · TGR ${_scenarios.base.termGrowth.toFixed(1)}%</div>
+      </div>
+      <div class="price-range-item${_activeScenario==='bull'?' active-scenario':''}" onclick="switchScenario('bull')">
+        <div class="price-range-label">Bull</div>
+        <div class="price-range-value bull">${fmtP(rBull.impliedPrice)}</div>
+        <div class="price-range-sub">WACC ${_scenarios.bull.wacc.toFixed(1)}% · TGR ${_scenarios.bull.termGrowth.toFixed(1)}%</div>
+      </div>
+    </div>
+  </div>`;
+
+  // ── Valuation KPIs for active scenario ────────────────────────────────────
+  const scenarioName = _activeScenario.charAt(0).toUpperCase() + _activeScenario.slice(1);
   const kpis = `
   <div class="dcf-card">
-    <h3>Valuation Summary <span class="tag">DCF — 5-year projection</span></h3>
+    <h3>Valuation Summary <span class="tag">DCF — ${scenarioName} Case · 5-year projection</span></h3>
     <div class="val-kpis">
       <div class="val-kpi">
         <div class="val-kpi-label">Enterprise Value</div>
@@ -1663,10 +1779,9 @@ function refreshDCF() {
       <div class="val-kpi">
         <div class="val-kpi-label">PV of Terminal Value</div>
         <div class="val-kpi-value">$${fmt(r.pvTermVal)}</div>
-        <div class="val-kpi-sub">${(r.pvTermVal / r.ev * 100).toFixed(0)}% of EV</div>
+        <div class="val-kpi-sub">${(isFinite(r.ev) && r.ev > 0) ? (r.pvTermVal / r.ev * 100).toFixed(0) + '% of EV' : '—'}</div>
       </div>
     </div>
-
     <div class="ev-bridge">
       <div class="ev-row"><span class="ev-row-label">PV of Free Cash Flows (Yr 1–5)</span><span>$${fmt(r.sumPvFcf)}</span></div>
       <div class="ev-row"><span class="ev-row-label">PV of Terminal Value</span><span>$${fmt(r.pvTermVal)}</span></div>
@@ -1676,13 +1791,10 @@ function refreshDCF() {
     </div>
   </div>`;
 
-  // Projection table
-  const projYrs = r.projections.map(p => `<th>FY${p.year}E</th>`).join('');
-  const histYr  = r.baseYear;
+  // ── FCF projection table ───────────────────────────────────────────────────
   const lastIS  = (_data.income_statements || []).sort((a,b) => a.fiscal_year.localeCompare(b.fiscal_year)).slice(-1)[0] || {};
-
   const projRows = [
-    { label: 'Revenue',         key: 'rev',   hist: lastIS.revenue },
+    { label: 'Revenue',         key: 'rev',    hist: lastIS.revenue },
     { label: 'EBITDA',          key: 'ebitda', hist: lastIS.ebitda },
     { label: 'EBIT',            key: 'ebit',   hist: lastIS.ebit },
     { label: '− Taxes (NOPAT)', key: 'nopat',  hist: null },
@@ -1695,18 +1807,18 @@ function refreshDCF() {
 
   const projTable = `
   <div class="dcf-card">
-    <h3>Free Cash Flow Projections <span class="tag">$ in ${units}</span></h3>
+    <h3>Free Cash Flow Projections <span class="tag">$ in ${units} — ${scenarioName} Case</span></h3>
     <table class="proj-table">
       <thead><tr>
         <th></th>
-        <th style="color:var(--muted);opacity:0.6">FY${histYr}A</th>
-        ${projYrs}
+        <th style="color:var(--muted);opacity:0.6">FY${r.baseYear}A</th>
+        ${r.projections.map(p => `<th>FY${p.year}E</th>`).join('')}
       </tr></thead>
       <tbody>
       ${projRows.map(row => `
         <tr class="${row.cls || ''}">
           <td>${row.label}</td>
-          <td class="proj-hist">${row.hist !== null && row.hist !== undefined ? fmt(row.hist) : '—'}</td>
+          <td class="proj-hist">${(row.hist !== null && row.hist !== undefined) ? fmt(row.hist) : '—'}</td>
           ${r.projections.map(p => {
             const v = row.key === 'capex' ? -p[row.key] : row.key === 'dnwc' ? -p[row.key] : p[row.key];
             return `<td>${fmt(v)}</td>`;
@@ -1716,54 +1828,94 @@ function refreshDCF() {
     </table>
   </div>`;
 
-  // Sensitivity table — WACC (rows) vs Terminal Growth (cols)
+  // ── Sensitivity table builder (heat map + base-case highlight) ─────────────
+  const varLabels = { wacc: 'WACC', termGrowth: 'TGR', revGrowth1: 'Rev Growth Y1', ebitdaMargin: 'EBITDA Margin' };
+
+  function buildSensTable(title, tag, rowVar, colVar, rowVals, colVals) {
+    const baseA = r.a;
+    const baseRowVal = rowVar === 'revGrowth1' ? baseA.revGrowth[0] * 100 : baseA[rowVar] * 100;
+    const baseColVal = colVar === 'revGrowth1' ? baseA.revGrowth[0] * 100 : baseA[colVar] * 100;
+
+    const matrix = rowVals.map(rv => colVals.map(cv => {
+      const a = { ...baseA, revGrowth: [...baseA.revGrowth] };
+      if (rowVar === 'revGrowth1') a.revGrowth[0] = rv / 100;
+      else a[rowVar] = rv / 100;
+      if (colVar === 'revGrowth1') a.revGrowth[0] = cv / 100;
+      else a[colVar] = cv / 100;
+      const res = _calcDCFCore(a, _data);
+      return res.impliedPrice !== null ? res.impliedPrice : res.equityVal;
+    }));
+
+    const allVals = matrix.flat().filter(v => isFinite(v));
+    const minV = Math.min(...allVals), maxV = Math.max(...allVals);
+    const usePrice = r.a.sharesDil > 0;
+    const fmtCell = v => isFinite(v) ? (usePrice ? '$' + fmtD(v) : '$' + fmt(v)) : '—';
+
+    const rows = rowVals.map((rv, ri) => {
+      const isBaseRow = Math.abs(rv - baseRowVal) < 0.011;
+      const cells = colVals.map((cv, ci) => {
+        const v = matrix[ri][ci];
+        const isBase = isBaseRow && Math.abs(cv - baseColVal) < 0.011;
+        const style = isBase ? '' : heatColor(v, minV, maxV);
+        return `<td class="${isBase ? 'sens-base' : ''}" style="${style}">${fmtCell(v)}</td>`;
+      }).join('');
+      return `<tr><th class="${isBaseRow ? 'axis-label' : ''}">${rv.toFixed(1)}%</th>${cells}</tr>`;
+    }).join('');
+
+    const colHeaders = colVals.map(cv =>
+      `<th class="${Math.abs(cv - baseColVal) < 0.011 ? 'axis-label' : ''}">${cv.toFixed(1)}%</th>`
+    ).join('');
+
+    return `
+    <div class="dcf-card">
+      <h3>${title} <span class="tag">${tag}</span></h3>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:12px">
+        <span style="color:var(--accent)">■</span> Base case &nbsp;·&nbsp;
+        Heat map: <span style="color:var(--red)">■</span> low &nbsp; <span style="color:var(--green)">■</span> high
+      </div>
+      <div class="sens-wrap">
+        <table class="sens-table">
+          <thead><tr>
+            <th>${varLabels[rowVar]} \\ ${varLabels[colVar]}</th>${colHeaders}
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }
+
   const baseWACC = r.a.wacc * 100;
   const baseTG   = r.a.termGrowth * 100;
-  const waccRange = [-2, -1.5, -1, -0.5, 0, 0.5, 1, 1.5, 2].map(d => +(baseWACC + d).toFixed(2));
-  const tgRange   = [-1, -0.5, 0, 0.5, 1].map(d => +(baseTG + d).toFixed(2));
+  const baseRG1  = r.a.revGrowth[0] * 100;
+  const baseEM   = r.a.ebitdaMargin * 100;
 
-  const sensRows = waccRange.map(w => {
-    const cells = tgRange.map(tg => {
-      const termFCF = r.projections[4].fcf * (1 + tg / 100);
-      const tv = (w / 100 - tg / 100) > 0.001 ? termFCF / (w / 100 - tg / 100) : 0;
-      const pvTv = tv * Math.pow(1 + w / 100, -5);
-      const evS = r.sumPvFcf + pvTv;
-      const eqS = evS - r.a.netDebt;
-      const price = r.a.sharesDil > 0 ? eqS / r.a.sharesDil : eqS;
-      const isBase = Math.abs(w - baseWACC) < 0.01 && Math.abs(tg - baseTG) < 0.01;
-      const cls = isBase ? 'sens-base' : price > (r.impliedPrice || price) * 1.1 ? 'sens-high' : price < (r.impliedPrice || price) * 0.9 ? 'sens-low' : '';
-      const label = r.a.sharesDil > 0 ? '$' + fmtD(price) : '$' + fmt(eqS);
-      return `<td class="${cls}">${label}</td>`;
-    }).join('');
-    const isBaseRow = Math.abs(w - baseWACC) < 0.01;
-    return `<tr><th class="${isBaseRow ? 'axis-label' : ''}">${w.toFixed(1)}%</th>${cells}</tr>`;
-  }).join('');
+  const waccRange = [-2,-1.5,-1,-0.5,0,0.5,1,1.5,2].map(d => +(baseWACC + d).toFixed(2));
+  const tgRange   = [-1,-0.5,0,0.5,1].map(d => +(baseTG + d).toFixed(2));
+  const rg1Range  = [-4,-3,-2,-1,0,1,2,3,4].map(d => +(baseRG1 + d).toFixed(1));
+  const emRange   = [-4,-2,0,2,4].map(d => +(baseEM + d).toFixed(1));
 
-  const sensTable = `
-  <div class="dcf-card">
-    <h3>Sensitivity Analysis <span class="tag">${r.a.sharesDil > 0 ? 'Implied Share Price' : 'Equity Value ($' + units + ')'} · WACC vs. Terminal Growth Rate</span></h3>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:12px">
-      Rows = WACC &nbsp;|&nbsp; Columns = Terminal Growth Rate &nbsp;|&nbsp;
-      <span style="color:var(--accent)">■</span> Base case &nbsp;
-      <span class="sens-high">■</span> &gt;10% above base &nbsp;
-      <span class="sens-low">■</span> &gt;10% below base
-    </div>
-    <div class="sens-wrap">
-      <table class="sens-table">
-        <thead><tr>
-          <th>WACC \ TGR</th>
-          ${tgRange.map(tg => `<th class="${Math.abs(tg - baseTG) < 0.01 ? 'axis-label' : ''}">${tg.toFixed(1)}%</th>`).join('')}
-        </tr></thead>
-        <tbody>${sensRows}</tbody>
-      </table>
-    </div>
-  </div>`;
+  const sensTable1 = buildSensTable(
+    'Sensitivity: WACC vs. Terminal Growth Rate',
+    r.a.sharesDil > 0 ? 'Implied Share Price' : `Equity Value ($${units})`,
+    'wacc', 'termGrowth', waccRange, tgRange
+  );
+  const sensTable2 = buildSensTable(
+    'Sensitivity: Revenue Growth vs. EBITDA Margin',
+    'Year 1 growth vs. margin',
+    'revGrowth1', 'ebitdaMargin', rg1Range, emRange
+  );
+  const sensTable3 = buildSensTable(
+    'Sensitivity: WACC vs. EBITDA Margin',
+    'Discount rate vs. profitability',
+    'wacc', 'ebitdaMargin', waccRange, emRange
+  );
 
-  document.getElementById('dcf-results').innerHTML = kpis + projTable + sensTable;
+  document.getElementById('dcf-results').innerHTML = priceBanner + kpis + projTable + sensTable1 + sensTable2 + sensTable3;
 }
 
 function resetDCF() {
-  _dcfAssumptions = null;
+  _scenarios = { bear: null, base: null, bull: null };
+  _activeScenario = 'base';
   if (_data) renderValuation(_data);
 }
 
