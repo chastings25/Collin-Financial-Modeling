@@ -1,0 +1,1803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>10-K Model Builder — 3-Statement Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0b0f;
+  --surface: #12141a;
+  --surface2: #1a1d26;
+  --surface3: #21263a;
+  --border: #252836;
+  --accent: #4f9cf9;
+  --accent2: #7c3aed;
+  --green: #22c55e;
+  --red: #ef4444;
+  --amber: #f59e0b;
+  --text: #e8eaf0;
+  --muted: #6b7280;
+  --mono: 'DM Mono', monospace;
+  --sans: 'DM Sans', sans-serif;
+  --display: 'Syne', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 13px;
+  min-height: 100vh;
+}
+
+/* ── Header ── */
+header {
+  background: linear-gradient(135deg, #0d1117 0%, #12141a 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 18px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(12px);
+}
+.logo {
+  font-family: var(--display);
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.header-meta {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+.header-meta span { color: var(--accent); }
+
+/* ── Upload screen ── */
+#upload-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 61px);
+  padding: 40px;
+}
+.upload-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 48px 56px;
+  max-width: 560px;
+  width: 100%;
+  text-align: center;
+}
+
+/* ── Input mode tabs ── */
+.mode-tabs {
+  display: flex;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 4px;
+  margin-bottom: 28px;
+}
+.mode-tab {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.mode-tab.active {
+  background: var(--surface3);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+.mode-badge {
+  display: inline-block;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-left: 5px;
+  font-weight: 600;
+}
+.badge-free { background: rgba(34,197,94,0.15); color: var(--green); }
+.badge-api  { background: rgba(79,156,249,0.15); color: var(--accent); }
+
+/* ── Ticker input ── */
+.ticker-input-wrap {
+  position: relative;
+  margin-bottom: 20px;
+  text-align: left;
+}
+.ticker-input-wrap label {
+  display: block;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+.ticker-input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  outline: none;
+  transition: border-color 0.15s;
+  text-transform: uppercase;
+}
+.ticker-input:focus { border-color: var(--accent); }
+.ticker-input::placeholder { color: var(--muted); font-size: 13px; letter-spacing: 0; text-transform: none; }
+.upload-icon {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 24px;
+  background: linear-gradient(135deg, rgba(79,156,249,0.15), rgba(124,58,237,0.15));
+  border: 1px solid rgba(79,156,249,0.3);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+}
+.upload-card h2 {
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  letter-spacing: -0.3px;
+}
+.upload-card p {
+  color: var(--muted);
+  margin-bottom: 32px;
+  line-height: 1.6;
+}
+.drop-zone {
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  padding: 32px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 20px;
+  position: relative;
+}
+.drop-zone:hover, .drop-zone.drag-over {
+  border-color: var(--accent);
+  background: rgba(79,156,249,0.05);
+}
+.drop-zone input[type=file] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+.drop-zone-text {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+}
+.drop-zone-text strong { color: var(--accent); }
+.file-name {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--green);
+  margin-top: 8px;
+  display: none;
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 32px;
+  font-family: var(--display);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  transition: opacity 0.2s;
+}
+.btn-primary:hover { opacity: 0.9; }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Loading screen ── */
+#loading-screen {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 61px);
+  flex-direction: column;
+  gap: 24px;
+}
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+}
+.loading-steps .active { color: var(--accent); }
+.loading-steps .done { color: var(--green); }
+
+/* ── Dashboard screen ── */
+#dashboard-screen { display: none; }
+
+/* ── Company banner ── */
+.company-banner {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 20px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.company-name {
+  font-family: var(--display);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+.company-meta {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.meta-chip {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+.meta-chip span { color: var(--text); }
+.banner-actions { display: flex; gap: 10px; }
+.btn-secondary {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 8px 18px;
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+.btn-download {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: white;
+  border: none;
+  border-radius: 7px;
+  padding: 8px 18px;
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.btn-download:hover { opacity: 0.85; }
+
+/* ── Tabs ── */
+.tabs-bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 32px;
+  display: flex;
+  gap: 0;
+}
+.tab-btn {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 14px 18px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* ── Tab panels ── */
+.tab-panel { display: none; padding: 28px 32px; }
+.tab-panel.active { display: block; }
+
+/* ── Section headers ── */
+.section-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  padding: 10px 0 6px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2px;
+}
+
+/* ── Financial table ── */
+.fin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.fin-table th {
+  text-align: right;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 400;
+  padding: 8px 12px 6px;
+  border-bottom: 1px solid var(--border);
+}
+.fin-table th:first-child { text-align: left; padding-left: 0; }
+.fin-table td {
+  padding: 5px 12px;
+  text-align: right;
+  color: var(--text);
+  border-bottom: 1px solid rgba(37,40,54,0.5);
+}
+.fin-table td:first-child {
+  text-align: left;
+  padding-left: 0;
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 12px;
+}
+.fin-table tr.row-total td {
+  border-top: 1px solid var(--border);
+  border-bottom: 2px solid var(--border);
+  font-weight: 500;
+  color: var(--text);
+}
+.fin-table tr.row-total td:first-child { color: var(--text); }
+.fin-table tr.row-grand-total td {
+  border-top: 2px solid var(--accent);
+  font-weight: 600;
+  color: var(--accent);
+  font-size: 13px;
+}
+.fin-table tr.row-grand-total td:first-child { color: var(--accent); }
+.fin-table tr.row-section td {
+  background: var(--surface2);
+  color: var(--muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  padding: 6px 12px;
+  font-family: var(--sans);
+  font-weight: 600;
+}
+.fin-table tr.row-section td:first-child { padding-left: 0; color: var(--text); }
+.fin-table tr.row-indent td:first-child { padding-left: 16px; }
+.fin-table tr.row-indent2 td:first-child { padding-left: 28px; }
+.fin-table .neg { color: var(--red); }
+.fin-table .pos { color: var(--green); }
+.fin-table .na { color: var(--muted); font-size: 11px; }
+.fin-table .pct { color: var(--muted); }
+.fin-table .check-ok { color: var(--green); font-weight: 600; }
+.fin-table .check-fail { color: var(--red); font-weight: 600; }
+
+/* ── Ratios grid ── */
+.ratios-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.ratio-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+.ratio-label {
+  font-family: var(--sans);
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.ratio-values {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.ratio-yr {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ratio-yr-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+}
+.ratio-yr-value {
+  font-family: var(--mono);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text);
+}
+.ratio-yr-value.pct { color: var(--accent); }
+.ratio-yr-value.na { color: var(--muted); font-size: 12px; }
+
+/* ── Bridge table ── */
+.bridge-table {
+  width: 100%;
+  max-width: 700px;
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.bridge-table td {
+  padding: 7px 12px;
+  border-bottom: 1px solid rgba(37,40,54,0.5);
+}
+.bridge-table td:first-child { color: var(--muted); font-family: var(--sans); padding-left: 0; }
+.bridge-table td:nth-child(2) { text-align: right; width: 130px; }
+.bridge-table td:nth-child(3) { text-align: right; width: 90px; color: var(--muted); }
+.bridge-table td:nth-child(4) { width: 200px; padding-left: 16px; }
+.bridge-table tr.bridge-total td {
+  border-top: 1px solid var(--border);
+  font-weight: 600;
+  color: var(--text);
+}
+.bridge-table tr.bridge-total td:first-child { color: var(--text); }
+.bridge-table tr.bridge-grand td {
+  border-top: 2px solid var(--accent);
+  font-weight: 700;
+  color: var(--accent);
+  font-size: 13px;
+}
+.bridge-table tr.bridge-grand td:first-child { color: var(--accent); }
+.bar-cell { vertical-align: middle; }
+.bar-outer {
+  background: var(--surface2);
+  border-radius: 3px;
+  height: 8px;
+  width: 100%;
+  overflow: hidden;
+}
+.bar-inner {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+  transition: width 0.6s ease;
+}
+.bar-inner.neg-bar { background: var(--red); }
+.bar-inner.pos-bar { background: var(--green); }
+.bar-inner.ebitda-bar { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+
+/* ── Error banner ── */
+.error-banner {
+  background: rgba(239,68,68,0.1);
+  border: 1px solid rgba(239,68,68,0.3);
+  border-radius: 8px;
+  padding: 14px 18px;
+  color: var(--red);
+  font-family: var(--mono);
+  font-size: 12px;
+  margin-bottom: 20px;
+  display: none;
+}
+
+/* ── DCF Valuation tab ── */
+.dcf-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+.dcf-assumptions {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  position: sticky;
+  top: 80px;
+}
+.dcf-assumptions h3 {
+  font-family: var(--display);
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: var(--text);
+}
+.assumption-group {
+  margin-bottom: 18px;
+}
+.assumption-group-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+.assumption-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+.assumption-label {
+  font-size: 12px;
+  color: var(--muted);
+  flex: 1;
+  line-height: 1.3;
+}
+.assumption-input {
+  width: 72px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 8px;
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 12px;
+  text-align: right;
+  outline: none;
+  transition: border-color 0.15s;
+  flex-shrink: 0;
+}
+.assumption-input:focus { border-color: var(--accent); }
+.btn-reset-dcf {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.btn-reset-dcf:hover { color: var(--text); border-color: var(--accent); }
+
+.dcf-main { display: flex; flex-direction: column; gap: 24px; }
+
+.dcf-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 24px;
+}
+.dcf-card h3 {
+  font-family: var(--display);
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dcf-card h3 .tag {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--muted);
+  background: var(--surface2);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+/* Valuation summary KPIs */
+.val-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.val-kpi {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 14px 16px;
+}
+.val-kpi-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+.val-kpi-value {
+  font-family: var(--mono);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--accent);
+  line-height: 1;
+}
+.val-kpi-sub { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 3px; }
+
+/* EV bridge */
+.ev-bridge { display: flex; flex-direction: column; gap: 4px; }
+.ev-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.ev-row.ev-total {
+  background: var(--surface2);
+  font-weight: 600;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+.ev-row.ev-grand {
+  background: linear-gradient(135deg, rgba(79,156,249,0.12), rgba(124,58,237,0.12));
+  border: 1px solid rgba(79,156,249,0.25);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--accent);
+  margin-top: 4px;
+}
+.ev-row-label { color: var(--muted); font-family: var(--sans); font-size: 12px; }
+.ev-row.ev-total .ev-row-label, .ev-row.ev-grand .ev-row-label { color: var(--text); }
+
+/* Projection table */
+.proj-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.proj-table th {
+  text-align: right;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 400;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.proj-table th:first-child { text-align: left; padding-left: 0; }
+.proj-table td {
+  padding: 5px 10px;
+  text-align: right;
+  border-bottom: 1px solid rgba(37,40,54,0.5);
+  color: var(--text);
+}
+.proj-table td:first-child {
+  text-align: left;
+  padding-left: 0;
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 12px;
+}
+.proj-table tr.proj-hist td { color: var(--muted); }
+.proj-table tr.proj-fcf td { color: var(--accent); font-weight: 500; }
+.proj-table tr.proj-total td {
+  font-weight: 600;
+  border-top: 1px solid var(--border);
+  color: var(--text);
+}
+
+/* Sensitivity table */
+.sens-wrap { overflow-x: auto; }
+.sens-table {
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: 11px;
+  min-width: 100%;
+}
+.sens-table th, .sens-table td {
+  padding: 7px 14px;
+  text-align: center;
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+.sens-table th { background: var(--surface2); color: var(--muted); font-weight: 400; }
+.sens-table th.axis-label { color: var(--text); font-weight: 600; }
+.sens-table td.sens-base {
+  background: rgba(79,156,249,0.2);
+  color: var(--accent);
+  font-weight: 700;
+  border-color: var(--accent);
+}
+.sens-high { color: var(--green); }
+.sens-low  { color: var(--red); }
+
+/* ── Util ── */
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">3-Statement Model</div>
+  <div class="header-meta">
+    <span id="hdr-company">—</span>
+    <span id="hdr-units" style="color:var(--muted)">—</span>
+    <span id="hdr-years" style="color:var(--muted)">—</span>
+  </div>
+</header>
+
+<!-- ── Upload ── -->
+<div id="upload-screen">
+  <div class="upload-card">
+    <div class="upload-icon">📊</div>
+    <h2>10-K Model Builder</h2>
+    <p>Build an interactive 3-statement financial dashboard from any public company's SEC filing.</p>
+
+    <div class="mode-tabs">
+      <button class="mode-tab active" onclick="switchMode('xbrl')" id="mode-xbrl-btn">
+        Ticker / EDGAR <span class="mode-badge badge-free">Free</span>
+      </button>
+      <button class="mode-tab" onclick="switchMode('pdf')" id="mode-pdf-btn">
+        Upload PDF <span class="mode-badge badge-api">API Key</span>
+      </button>
+    </div>
+
+    <div class="error-banner" id="upload-error"></div>
+
+    <!-- XBRL mode -->
+    <div id="xbrl-mode">
+      <div class="ticker-input-wrap">
+        <label>Ticker symbol or company name</label>
+        <input class="ticker-input" id="ticker-input" type="text"
+               placeholder="e.g. AAPL, MSFT, Apple Inc"
+               oninput="onTickerInput()" onkeydown="if(event.key==='Enter') runAnalysis()">
+      </div>
+      <p style="font-size:11px;color:var(--muted);margin-bottom:20px;text-align:left">
+        Pulls directly from SEC EDGAR XBRL data — no API key required.
+        Covers all US public companies filing 10-Ks since ~2010.
+      </p>
+      <button class="btn-primary" id="analyze-btn" disabled onclick="runAnalysis()">
+        Build Model
+      </button>
+    </div>
+
+    <!-- PDF mode -->
+    <div id="pdf-mode" style="display:none">
+      <div class="drop-zone" id="drop-zone">
+        <input type="file" id="pdf-input" accept=".pdf">
+        <div class="drop-zone-text">
+          <strong>Click to browse</strong> or drag &amp; drop your 10-K PDF here
+        </div>
+        <div class="file-name" id="file-name-display"></div>
+      </div>
+      <p style="font-size:11px;color:var(--muted);margin-bottom:20px;text-align:left">
+        Requires an <strong style="color:var(--accent)">ANTHROPIC_API_KEY</strong> set in your <code style="color:var(--muted)">.env</code> file.
+        Works with any 10-K PDF including private company filings.
+      </p>
+      <button class="btn-primary" id="analyze-pdf-btn" disabled onclick="runAnalysis()">
+        Extract &amp; Build Model
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Loading ── -->
+<div id="loading-screen">
+  <div class="spinner"></div>
+  <div class="loading-steps">
+    <div id="step-1" class="active">① Extracting financial text from PDF…</div>
+    <div id="step-2">② Parsing statements with Claude AI…</div>
+    <div id="step-3">③ Building dashboard…</div>
+  </div>
+</div>
+
+<!-- ── Dashboard ── -->
+<div id="dashboard-screen">
+
+  <div class="company-banner">
+    <div>
+      <div class="company-name" id="dash-company">—</div>
+      <div class="company-meta" id="dash-meta"></div>
+    </div>
+    <div class="banner-actions">
+      <button class="btn-secondary" onclick="resetToUpload()">↩ New Upload</button>
+      <button class="btn-download" onclick="downloadExcel()">⬇ Download Excel</button>
+    </div>
+  </div>
+
+  <div class="tabs-bar">
+    <button class="tab-btn active" onclick="switchTab('is')">Income Statement</button>
+    <button class="tab-btn" onclick="switchTab('bs')">Balance Sheet</button>
+    <button class="tab-btn" onclick="switchTab('cf')">Cash Flow</button>
+    <button class="tab-btn" onclick="switchTab('ratios')">Ratios & KPIs</button>
+    <button class="tab-btn" onclick="switchTab('bridge')">EBITDA Bridge</button>
+    <button class="tab-btn" onclick="switchTab('valuation')" style="color:var(--accent)">⬡ Valuation</button>
+  </div>
+
+  <div id="tab-is" class="tab-panel active"></div>
+  <div id="tab-bs" class="tab-panel"></div>
+  <div id="tab-cf" class="tab-panel"></div>
+  <div id="tab-ratios" class="tab-panel"></div>
+  <div id="tab-bridge" class="tab-panel"></div>
+  <div id="tab-valuation" class="tab-panel"></div>
+
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let _data = null;
+let _selectedFile = null;
+let _mode = 'xbrl'; // 'xbrl' or 'pdf'
+
+// ── Mode switching ─────────────────────────────────────────────────────────
+function switchMode(mode) {
+  _mode = mode;
+  document.getElementById('mode-xbrl-btn').classList.toggle('active', mode === 'xbrl');
+  document.getElementById('mode-pdf-btn').classList.toggle('active', mode === 'pdf');
+  document.getElementById('xbrl-mode').style.display = mode === 'xbrl' ? 'block' : 'none';
+  document.getElementById('pdf-mode').style.display  = mode === 'pdf'  ? 'block' : 'none';
+  document.getElementById('upload-error').style.display = 'none';
+}
+
+function onTickerInput() {
+  const val = document.getElementById('ticker-input').value.trim();
+  document.getElementById('analyze-btn').disabled = val.length === 0;
+}
+
+// ── PDF drop-zone ──────────────────────────────────────────────────────────
+const pdfInput = document.getElementById('pdf-input');
+const fileNameDisplay = document.getElementById('file-name-display');
+const dropZone = document.getElementById('drop-zone');
+
+pdfInput.addEventListener('change', () => {
+  if (pdfInput.files[0]) {
+    _selectedFile = pdfInput.files[0];
+    fileNameDisplay.textContent = _selectedFile.name;
+    fileNameDisplay.style.display = 'block';
+    document.getElementById('analyze-pdf-btn').disabled = false;
+  }
+});
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file && file.name.toLowerCase().endsWith('.pdf')) {
+    _selectedFile = file;
+    fileNameDisplay.textContent = file.name;
+    fileNameDisplay.style.display = 'block';
+    document.getElementById('analyze-pdf-btn').disabled = false;
+  }
+});
+
+// ── Shared helpers ─────────────────────────────────────────────────────────
+function showError(msg) {
+  const el = document.getElementById('upload-error');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function setLoadingSteps(s1, s2, s3) {
+  document.getElementById('step-1').textContent = s1;
+  document.getElementById('step-2').textContent = s2;
+  document.getElementById('step-3').textContent = s3;
+}
+
+// ── Main analysis ──────────────────────────────────────────────────────────
+async function runAnalysis() {
+  document.getElementById('upload-error').style.display = 'none';
+  document.getElementById('upload-screen').style.display = 'none';
+  document.getElementById('loading-screen').style.display = 'flex';
+
+  // Reset step states
+  document.getElementById('step-1').className = 'active';
+  document.getElementById('step-2').className = '';
+  document.getElementById('step-3').className = '';
+
+  let fetchPromise;
+
+  if (_mode === 'xbrl') {
+    const query = document.getElementById('ticker-input').value.trim();
+    const isTickerLike = /^[A-Z]{1,5}$/.test(query.toUpperCase());
+    setLoadingSteps(
+      '① Looking up company on SEC EDGAR…',
+      '② Fetching XBRL financial data…',
+      '③ Building dashboard…'
+    );
+    setTimeout(() => {
+      document.getElementById('step-1').className = 'done';
+      document.getElementById('step-2').className = 'active';
+    }, 800);
+
+    fetchPromise = fetch('/analyze-xbrl', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(isTickerLike ? { ticker: query } : { company: query }),
+    });
+
+  } else {
+    if (!_selectedFile) {
+      document.getElementById('loading-screen').style.display = 'none';
+      document.getElementById('upload-screen').style.display = 'flex';
+      return;
+    }
+    setLoadingSteps(
+      '① Extracting text from PDF…',
+      '② Parsing statements with Claude AI…',
+      '③ Building dashboard…'
+    );
+    setTimeout(() => {
+      document.getElementById('step-1').className = 'done';
+      document.getElementById('step-2').className = 'active';
+    }, 1200);
+
+    const formData = new FormData();
+    formData.append('pdf', _selectedFile);
+    fetchPromise = fetch('/analyze', { method: 'POST', body: formData });
+  }
+
+  try {
+    const resp = await fetchPromise;
+    const json = await resp.json();
+    if (!resp.ok || json.error) throw new Error(json.error || 'Server error');
+
+    document.getElementById('step-2').className = 'done';
+    document.getElementById('step-3').className = 'active';
+    await new Promise(r => setTimeout(r, 300));
+
+    _data = json.data;
+    renderDashboard(_data);
+
+    document.getElementById('step-3').className = 'done';
+    await new Promise(r => setTimeout(r, 250));
+
+    document.getElementById('loading-screen').style.display = 'none';
+    document.getElementById('dashboard-screen').style.display = 'block';
+
+  } catch (err) {
+    document.getElementById('loading-screen').style.display = 'none';
+    document.getElementById('upload-screen').style.display = 'flex';
+    showError('Error: ' + err.message);
+  }
+}
+
+function resetToUpload() {
+  _data = null;
+  _selectedFile = null;
+  pdfInput.value = '';
+  fileNameDisplay.style.display = 'none';
+  document.getElementById('analyze-btn').disabled = true;
+  document.getElementById('analyze-pdf-btn').disabled = true;
+  document.getElementById('ticker-input').value = '';
+  document.getElementById('dashboard-screen').style.display = 'none';
+  document.getElementById('upload-screen').style.display = 'flex';
+  document.getElementById('upload-error').style.display = 'none';
+}
+
+// ── Tab switching ─────────────────────────────────────────────────────────
+const _TAB_MAP = { is:'Income', bs:'Balance', cf:'Cash', ratios:'Ratio', bridge:'Bridge', valuation:'Valuation' };
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent.includes(_TAB_MAP[name]));
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'valuation' && _data) renderValuation(_data);
+}
+
+// ── Formatting helpers ─────────────────────────────────────────────────────
+function fmt(v, type = 'currency') {
+  if (v === null || v === undefined) return '<span class="na">—</span>';
+  if (type === 'pct') return (v * 100).toFixed(1) + '%';
+  if (type === 'mult') return v.toFixed(1) + 'x';
+  if (type === 'days') return v.toFixed(1);
+  const abs = Math.abs(v);
+  const s = abs.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  if (v < 0) return `<span class="neg">(${s})</span>`;
+  return s;
+}
+
+function fmtPct(v) {
+  if (v === null || v === undefined) return '<span class="na">—</span>';
+  const s = (v * 100).toFixed(1) + '%';
+  return `<span class="pct">${s}</span>`;
+}
+
+function fmtCell(v) {
+  if (v === null || v === undefined) return '<span class="na">—</span>';
+  const abs = Math.abs(v);
+  const s = abs.toLocaleString('en-US', { maximumFractionDigits: 0 });
+  if (v < 0) return `<span class="neg">(${s})</span>`;
+  return s;
+}
+
+function yoyGrowth(curr, prev) {
+  if (!curr || !prev || prev === 0) return '<span class="na">—</span>';
+  const g = (curr - prev) / Math.abs(prev);
+  const s = (g * 100).toFixed(1) + '%';
+  return g >= 0 ? `<span class="pos">+${s}</span>` : `<span class="neg">${s}</span>`;
+}
+
+// ── Render dashboard ───────────────────────────────────────────────────────
+function renderDashboard(data) {
+  const meta = data.metadata;
+  const years = [...new Set([
+    ...data.income_statements.map(i => i.fiscal_year),
+    ...data.balance_sheets.map(b => b.fiscal_year),
+  ])].sort();
+
+  // Header
+  document.getElementById('hdr-company').textContent = meta.company_name;
+  document.getElementById('hdr-units').textContent = `$ in ${meta.units}`;
+  document.getElementById('hdr-years').textContent = years.map(y => 'FY' + y).join(' · ');
+  document.getElementById('dash-company').textContent = meta.company_name;
+
+  // Meta chips
+  const chips = [
+    ['Currency', meta.currency],
+    ['Units', meta.units],
+    ['Fiscal Year End', meta.fiscal_year_end || '—'],
+    ['Auditor', meta.auditor || '—'],
+  ];
+  document.getElementById('dash-meta').innerHTML = chips
+    .map(([l, v]) => `<div class="meta-chip">${l}: <span>${v}</span></div>`)
+    .join('');
+
+  const isArr = data.income_statements.sort((a,b) => a.fiscal_year.localeCompare(b.fiscal_year));
+  const bsArr = data.balance_sheets.sort((a,b) => a.fiscal_year.localeCompare(b.fiscal_year));
+  const cfArr = data.cash_flow_statements.sort((a,b) => a.fiscal_year.localeCompare(b.fiscal_year));
+
+  renderIS(isArr);
+  renderBS(bsArr);
+  renderCF(cfArr, isArr);
+  renderRatios(isArr, bsArr, cfArr);
+  renderBridge(isArr);
+}
+
+// ── Income Statement ───────────────────────────────────────────────────────
+function renderIS(arr) {
+  const yrs = arr.map(i => i.fiscal_year);
+  let html = tableHeader(yrs);
+
+  const rows = [
+    { section: 'Revenue' },
+    { label: 'Revenue', key: 'revenue', indent: 1 },
+    { label: 'Cost of Revenue', key: 'cost_of_revenue', indent: 1 },
+    { label: 'Gross Profit', key: 'gross_profit', total: true },
+    { section: 'Operating Expenses' },
+    { label: 'Research & Development', key: 'research_and_development', indent: 1 },
+    { label: 'Selling, General & Administrative', key: 'selling_general_admin', indent: 1 },
+    { label: 'Other Operating Expenses', key: 'operating_expenses_other', indent: 1 },
+    { section: 'EBITDA & EBIT' },
+    { label: 'Depreciation & Amortization', key: 'depreciation_amortization', indent: 1 },
+    { label: 'EBITDA', key: 'ebitda', total: true },
+    { label: 'EBIT (Operating Income)', key: 'ebit', total: true },
+    { section: 'Below the Line' },
+    { label: 'Interest Expense', key: 'interest_expense', indent: 1 },
+    { label: 'Interest Income', key: 'interest_income', indent: 1 },
+    { label: 'Other Income / (Expense)', key: 'other_income_expense', indent: 1 },
+    { label: 'Pretax Income (EBT)', key: 'pretax_income', total: true },
+    { label: 'Income Tax Expense', key: 'income_tax', indent: 1 },
+    { label: 'Net Income', key: 'net_income', grand: true },
+    { section: 'Per Share' },
+    { label: 'Shares — Basic (mm)', key: 'shares_basic', indent: 1 },
+    { label: 'Shares — Diluted (mm)', key: 'shares_diluted', indent: 1 },
+    { label: 'EPS — Basic', key: 'eps_basic', indent: 1, dec: true },
+    { label: 'EPS — Diluted', key: 'eps_diluted', indent: 1, dec: true },
+  ];
+
+  // Add margin rows
+  rows.push({ section: 'Margin Analysis' });
+  const marginRows = [
+    { label: 'Gross Margin %', fn: is_ => is_.gross_profit && is_.revenue ? is_.gross_profit / is_.revenue : null },
+    { label: 'EBITDA Margin %', fn: is_ => is_.ebitda && is_.revenue ? is_.ebitda / is_.revenue : null },
+    { label: 'EBIT Margin %', fn: is_ => is_.ebit && is_.revenue ? is_.ebit / is_.revenue : null },
+    { label: 'Net Margin %', fn: is_ => is_.net_income && is_.revenue ? is_.net_income / is_.revenue : null },
+  ];
+
+  html += rows.map(r => {
+    if (r.section) return `<tr class="row-section"><td colspan="${yrs.length + 1}">${r.section}</td></tr>`;
+    const cls = r.grand ? 'row-grand-total' : r.total ? 'row-total' : r.indent ? 'row-indent' : '';
+    const vals = arr.map(is_ => {
+      const v = is_[r.key];
+      if (r.dec) return fmtDec(v);
+      return fmtCell(v);
+    }).join('');
+    return `<tr class="${cls}"><td>${r.label}</td>${arr.map(is_ => `<td>${r.dec ? fmtDec(is_[r.key]) : fmtCell(is_[r.key])}</td>`).join('')}</tr>`;
+  }).join('');
+
+  // Margin rows
+  html += marginRows.map(r => {
+    return `<tr class="row-indent"><td>${r.label}</td>${arr.map(is_ => `<td>${fmtPct(r.fn(is_))}</td>`).join('')}</tr>`;
+  }).join('');
+
+  // YoY growth
+  if (arr.length >= 2) {
+    html += `<tr class="row-section"><td colspan="${yrs.length + 1}">YoY Growth</td></tr>`;
+    [
+      { label: 'Revenue Growth', key: 'revenue' },
+      { label: 'Gross Profit Growth', key: 'gross_profit' },
+      { label: 'EBITDA Growth', key: 'ebitda' },
+      { label: 'Net Income Growth', key: 'net_income' },
+    ].forEach(r => {
+      html += `<tr class="row-indent"><td>${r.label}</td>`;
+      arr.forEach((is_, i) => {
+        html += `<td>${i === 0 ? '<span class="na">—</span>' : yoyGrowth(is_[r.key], arr[i-1][r.key])}</td>`;
+      });
+      html += '</tr>';
+    });
+  }
+
+  html += '</tbody></table>';
+  document.getElementById('tab-is').innerHTML = html;
+}
+
+// ── Balance Sheet ─────────────────────────────────────────────────────────
+function renderBS(arr) {
+  const yrs = arr.map(b => b.fiscal_year);
+  let html = tableHeader(yrs);
+
+  const rows = [
+    { section: 'ASSETS' },
+    { label: 'Current Assets', subsection: true },
+    { label: 'Cash & Cash Equivalents', key: 'cash_and_equivalents', indent: 1 },
+    { label: 'Short-term Investments', key: 'short_term_investments', indent: 1 },
+    { label: 'Accounts Receivable', key: 'accounts_receivable', indent: 1 },
+    { label: 'Inventory', key: 'inventory', indent: 1 },
+    { label: 'Prepaid & Other Current', key: 'prepaid_other_current', indent: 1 },
+    { label: 'Total Current Assets', key: 'total_current_assets', total: true },
+    { label: 'Non-current Assets', subsection: true },
+    { label: 'PP&E, Net', key: 'ppe_net', indent: 1 },
+    { label: 'Goodwill', key: 'goodwill', indent: 1 },
+    { label: 'Intangible Assets', key: 'intangibles', indent: 1 },
+    { label: 'Other Non-current Assets', key: 'other_noncurrent_assets', indent: 1 },
+    { label: 'Total Non-current Assets', key: 'total_noncurrent_assets', total: true },
+    { label: 'Total Assets', key: 'total_assets', grand: true },
+    { section: 'LIABILITIES' },
+    { label: 'Current Liabilities', subsection: true },
+    { label: 'Accounts Payable', key: 'accounts_payable', indent: 1 },
+    { label: 'Short-term Debt', key: 'short_term_debt', indent: 1 },
+    { label: 'Accrued Liabilities', key: 'accrued_liabilities', indent: 1 },
+    { label: 'Other Current Liabilities', key: 'other_current_liabilities', indent: 1 },
+    { label: 'Total Current Liabilities', key: 'total_current_liabilities', total: true },
+    { label: 'Non-current Liabilities', subsection: true },
+    { label: 'Long-term Debt', key: 'long_term_debt', indent: 1 },
+    { label: 'Deferred Tax Liabilities', key: 'deferred_tax_liabilities', indent: 1 },
+    { label: 'Other Non-current Liabilities', key: 'other_noncurrent_liabilities', indent: 1 },
+    { label: 'Total Non-current Liabilities', key: 'total_noncurrent_liabilities', total: true },
+    { label: 'Total Liabilities', key: 'total_liabilities', grand: true },
+    { section: "SHAREHOLDERS' EQUITY" },
+    { label: 'Retained Earnings', key: 'retained_earnings', indent: 1 },
+    { label: 'Other Equity Components', key: 'additional_paid_in_capital', indent: 1 },
+    { label: 'Total Equity', key: 'total_equity', grand: true },
+  ];
+
+  // Balance check row
+  html += rows.map(r => {
+    if (r.section) return `<tr class="row-section"><td colspan="${yrs.length + 1}">${r.section}</td></tr>`;
+    if (r.subsection) return `<tr class="row-indent"><td style="color:var(--text);font-weight:600;padding-top:8px">${r.label}</td>${arr.map(() => '<td></td>').join('')}</tr>`;
+    const cls = r.grand ? 'row-grand-total' : r.total ? 'row-total' : r.indent ? 'row-indent' : '';
+    return `<tr class="${cls}"><td>${r.label}</td>${arr.map(bs => `<td>${fmtCell(bs[r.key])}</td>`).join('')}</tr>`;
+  }).join('');
+
+  // Balance check
+  html += `<tr class="row-section"><td colspan="${yrs.length + 1}">Balance Check</td></tr>`;
+  html += `<tr><td style="padding-left:16px">Assets = Liabilities + Equity?</td>`;
+  arr.forEach(bs => {
+    const le = (bs.total_liabilities || 0) + (bs.total_equity || 0);
+    const ok = bs.total_assets && Math.abs(bs.total_assets - le) < 2;
+    html += `<td class="${ok ? 'check-ok' : 'check-fail'}">${ok ? '✓ Balanced' : '⚠ Mismatch'}</td>`;
+  });
+  html += '</tr></tbody></table>';
+
+  document.getElementById('tab-bs').innerHTML = html;
+}
+
+// ── Cash Flow ─────────────────────────────────────────────────────────────
+function renderCF(cfArr, isArr) {
+  const yrs = cfArr.map(c => c.fiscal_year);
+  if (!yrs.length) { document.getElementById('tab-cf').innerHTML = '<p style="color:var(--muted);padding:20px">No cash flow data extracted.</p>'; return; }
+  let html = tableHeader(yrs);
+
+  const rows = [
+    { section: 'Operating Activities' },
+    { label: 'Net Income', key: 'net_income', indent: 1, link: true },
+    { label: 'Depreciation & Amortization', key: 'depreciation_amortization', indent: 1, link: true },
+    { label: 'Stock-based Compensation', key: 'stock_based_compensation', indent: 1 },
+    { label: 'Changes in Working Capital', key: 'changes_in_working_capital', indent: 1 },
+    { label: 'Other Operating Activities', key: 'other_operating_activities', indent: 1 },
+    { label: 'Net Cash from Operations', key: 'net_cash_operating', total: true },
+    { section: 'Investing Activities' },
+    { label: 'Capital Expenditures', key: 'capital_expenditures', indent: 1 },
+    { label: 'Acquisitions', key: 'acquisitions', indent: 1 },
+    { label: 'Purchases of Investments', key: 'purchases_investments', indent: 1 },
+    { label: 'Proceeds from Sale of Investments', key: 'sales_investments', indent: 1 },
+    { label: 'Other Investing', key: 'other_investing', indent: 1 },
+    { label: 'Net Cash from Investing', key: 'net_cash_investing', total: true },
+    { section: 'Financing Activities' },
+    { label: 'Debt Issuance', key: 'debt_issuance', indent: 1 },
+    { label: 'Debt Repayments', key: 'debt_repayment', indent: 1 },
+    { label: 'Dividends Paid', key: 'dividends_paid', indent: 1 },
+    { label: 'Share Repurchases', key: 'share_repurchases', indent: 1 },
+    { label: 'Other Financing', key: 'other_financing', indent: 1 },
+    { label: 'Net Cash from Financing', key: 'net_cash_financing', total: true },
+    { section: 'Reconciliation' },
+    { label: 'Net Change in Cash', key: 'net_change_in_cash', total: true },
+    { label: 'Beginning Cash', key: 'beginning_cash', indent: 1 },
+    { label: 'Ending Cash (per CF)', key: 'ending_cash', grand: true },
+  ];
+
+  html += rows.map(r => {
+    if (r.section) return `<tr class="row-section"><td colspan="${yrs.length + 1}">${r.section}</td></tr>`;
+    const cls = r.grand ? 'row-grand-total' : r.total ? 'row-total' : r.indent ? 'row-indent' : '';
+    const color = r.link ? 'style="color:var(--green)"' : '';
+    return `<tr class="${cls}"><td ${color}>${r.label}${r.link ? ' ↗' : ''}</td>${cfArr.map(cf => `<td>${fmtCell(cf[r.key])}</td>`).join('')}</tr>`;
+  }).join('');
+
+  html += '</tbody></table>';
+  document.getElementById('tab-cf').innerHTML = html;
+}
+
+// ── Ratios ─────────────────────────────────────────────────────────────────
+function renderRatios(isArr, bsArr, cfArr) {
+  const yrs = isArr.map(i => i.fiscal_year);
+  const el = document.getElementById('tab-ratios');
+  let html = '';
+
+  function ratioCard(label, valueFn, type = 'pct') {
+    const values = yrs.map((yr, i) => {
+      const is_ = isArr[i];
+      const bs = bsArr.find(b => b.fiscal_year === yr);
+      const cf = cfArr.find(c => c.fiscal_year === yr);
+      const v = valueFn(is_, bs, cf);
+      let display;
+      if (v === null || v === undefined || isNaN(v)) {
+        display = '<span class="na">—</span>';
+      } else if (type === 'pct') {
+        display = `<span class="pct">${(v * 100).toFixed(1)}%</span>`;
+      } else if (type === 'mult') {
+        display = `${v.toFixed(1)}x`;
+      } else if (type === 'days') {
+        display = `${v.toFixed(0)} days`;
+      } else {
+        display = v.toLocaleString('en-US', { maximumFractionDigits: 1 });
+      }
+      return `<div class="ratio-yr"><div class="ratio-yr-label">FY${yr}</div><div class="ratio-yr-value">${display}</div></div>`;
+    }).join('');
+    return `<div class="ratio-card"><div class="ratio-label">${label}</div><div class="ratio-values">${values}</div></div>`;
+  }
+
+  const safe = (a, b) => (a && b && b !== 0) ? a / b : null;
+
+  html += `<div class="section-label">Profitability</div><div class="ratios-grid">`;
+  html += ratioCard('Gross Margin %', (is_) => safe(is_?.gross_profit, is_?.revenue));
+  html += ratioCard('EBITDA Margin %', (is_) => safe(is_?.ebitda, is_?.revenue));
+  html += ratioCard('EBIT Margin %', (is_) => safe(is_?.ebit, is_?.revenue));
+  html += ratioCard('Net Profit Margin %', (is_) => safe(is_?.net_income, is_?.revenue));
+  html += ratioCard('Return on Assets (ROA)', (is_, bs) => safe(is_?.net_income, bs?.total_assets));
+  html += ratioCard('Return on Equity (ROE)', (is_, bs) => safe(is_?.net_income, bs?.total_equity));
+  html += `</div>`;
+
+  html += `<div class="section-label">Liquidity</div><div class="ratios-grid">`;
+  html += ratioCard('Current Ratio', (is_, bs) => safe(bs?.total_current_assets, bs?.total_current_liabilities), 'mult');
+  html += ratioCard('Quick Ratio', (is_, bs) => {
+    if (!bs?.total_current_liabilities) return null;
+    return ((bs.cash_and_equivalents || 0) + (bs.short_term_investments || 0) + (bs.accounts_receivable || 0)) / bs.total_current_liabilities;
+  }, 'mult');
+  html += ratioCard('Cash Ratio', (is_, bs) => safe(bs?.cash_and_equivalents, bs?.total_current_liabilities), 'mult');
+  html += ratioCard('Net Working Capital', (is_, bs) => {
+    if (bs?.total_current_assets && bs?.total_current_liabilities) return bs.total_current_assets - bs.total_current_liabilities;
+    return null;
+  }, 'num');
+  html += `</div>`;
+
+  html += `<div class="section-label">Leverage</div><div class="ratios-grid">`;
+  html += ratioCard('Total Debt / Equity', (is_, bs) => {
+    if (!bs?.total_equity) return null;
+    return ((bs.long_term_debt || 0) + (bs.short_term_debt || 0)) / bs.total_equity;
+  }, 'mult');
+  html += ratioCard('Net Debt / EBITDA', (is_, bs) => {
+    if (!is_?.ebitda || is_.ebitda === 0) return null;
+    const netDebt = (bs?.long_term_debt || 0) + (bs?.short_term_debt || 0) - (bs?.cash_and_equivalents || 0);
+    return netDebt / is_.ebitda;
+  }, 'mult');
+  html += ratioCard('Interest Coverage', (is_) => {
+    if (!is_?.interest_expense || is_.interest_expense === 0 || !is_?.ebit) return null;
+    return is_.ebit / Math.abs(is_.interest_expense);
+  }, 'mult');
+  html += `</div>`;
+
+  html += `<div class="section-label">Working Capital Schedule</div><div class="ratios-grid">`;
+  html += ratioCard('Days Sales Outstanding (DSO)', (is_, bs) => {
+    if (!is_?.revenue || !bs?.accounts_receivable) return null;
+    return bs.accounts_receivable / is_.revenue * 365;
+  }, 'days');
+  html += ratioCard('Days Inventory Outstanding (DIO)', (is_, bs) => {
+    if (!is_?.cost_of_revenue || !bs?.inventory) return null;
+    return bs.inventory / is_.cost_of_revenue * 365;
+  }, 'days');
+  html += ratioCard('Days Payable Outstanding (DPO)', (is_, bs) => {
+    if (!is_?.cost_of_revenue || !bs?.accounts_payable) return null;
+    return bs.accounts_payable / is_.cost_of_revenue * 365;
+  }, 'days');
+  html += ratioCard('Cash Conversion Cycle', (is_, bs) => {
+    const dso = (is_?.revenue && bs?.accounts_receivable) ? bs.accounts_receivable / is_.revenue * 365 : 0;
+    const dio = (is_?.cost_of_revenue && bs?.inventory) ? bs.inventory / is_.cost_of_revenue * 365 : 0;
+    const dpo = (is_?.cost_of_revenue && bs?.accounts_payable) ? bs.accounts_payable / is_.cost_of_revenue * 365 : 0;
+    return (dso || dio) ? dso + dio - dpo : null;
+  }, 'days');
+  html += `</div>`;
+
+  el.innerHTML = html;
+}
+
+// ── EBITDA Bridge ────────────────────────────────────────────────────────
+function renderBridge(isArr) {
+  if (!isArr.length) return;
+  const is_ = isArr[isArr.length - 1];
+  const yr = is_.fiscal_year;
+  const rev = is_.revenue || 1;
+
+  const rows = [
+    { label: 'Revenue', value: is_.revenue, type: 'subtotal' },
+    { label: '(−) Cost of Revenue', value: -(Math.abs(is_.cost_of_revenue || 0)), type: 'normal' },
+    { label: '= Gross Profit', value: is_.gross_profit, type: 'subtotal' },
+    { label: '(−) Operating Expenses (excl. D&A)', value: is_.gross_profit && is_.ebitda && is_.depreciation_amortization ? -(is_.gross_profit - is_.ebitda - is_.depreciation_amortization) : null, type: 'normal' },
+    { label: '(+) D&A Add-back', value: is_.depreciation_amortization, type: 'normal' },
+    { label: '= EBITDA', value: is_.ebitda, type: 'grand' },
+    { label: '(−) Depreciation & Amortization', value: is_.depreciation_amortization ? -is_.depreciation_amortization : null, type: 'normal' },
+    { label: '= EBIT', value: is_.ebit, type: 'subtotal' },
+  ];
+
+  const maxAbs = Math.max(...rows.map(r => Math.abs(r.value || 0)));
+
+  let html = `
+    <div style="margin-bottom:12px;font-family:var(--mono);font-size:11px;color:var(--muted)">FY${yr} — $ in ${_data.metadata.units}</div>
+    <table class="bridge-table">
+    <thead><tr>
+      <th style="text-align:left;color:var(--muted);font-size:11px;padding:6px 0;border-bottom:1px solid var(--border)">Component</th>
+      <th style="text-align:right;color:var(--muted);font-size:11px;padding:6px 12px;border-bottom:1px solid var(--border)">Amount</th>
+      <th style="text-align:right;color:var(--muted);font-size:11px;padding:6px 12px;border-bottom:1px solid var(--border)">% Rev</th>
+      <th style="color:var(--muted);font-size:11px;padding:6px 16px;border-bottom:1px solid var(--border)">Bar</th>
+    </tr></thead><tbody>`;
+
+  rows.forEach(r => {
+    const trCls = r.type === 'grand' ? 'bridge-grand' : r.type === 'subtotal' ? 'bridge-total' : '';
+    const pct = r.value && is_.revenue ? (r.value / is_.revenue * 100).toFixed(1) + '%' : '—';
+    const barPct = maxAbs > 0 && r.value ? (Math.abs(r.value) / maxAbs * 100).toFixed(0) : 0;
+    const barCls = r.type === 'grand' ? 'ebitda-bar' : r.value < 0 ? 'neg-bar' : 'pos-bar';
+    html += `<tr class="${trCls}">
+      <td>${r.label}</td>
+      <td>${fmtCell(r.value)}</td>
+      <td style="color:var(--muted)">${pct}</td>
+      <td class="bar-cell"><div class="bar-outer"><div class="bar-inner ${barCls}" style="width:${barPct}%"></div></div></td>
+    </tr>`;
+  });
+
+  html += '</tbody></table>';
+  document.getElementById('tab-bridge').innerHTML = html;
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function tableHeader(yrs) {
+  return `<table class="fin-table"><thead><tr>
+    <th style="text-align:left"></th>
+    ${yrs.map(y => `<th>FY${y}</th>`).join('')}
+  </tr></thead><tbody>`;
+}
+
+function fmtDec(v) {
+  if (v === null || v === undefined) return '<span class="na">—</span>';
+  return v.toFixed(2);
+}
+
+// ── DCF Valuation ─────────────────────────────────────────────────────────
+
+let _dcfAssumptions = null;
+
+function _dcfDefaults(data) {
+  const isArr = data.income_statements.sort((a,b) => a.fiscal_year.localeCompare(b.fiscal_year));
+  const cfArr = data.cash_flow_statements.sort((a,b) => a.fiscal_year.localeCompare(b.fiscal_year));
+  const last  = isArr[isArr.length - 1] || {};
+  const prev  = isArr[isArr.length - 2] || {};
+
+  // Revenue growth: avg of last 2 YoY, floor at 2%
+  const revGrowth = (last.revenue && prev.revenue && prev.revenue !== 0)
+    ? Math.max(0.02, (last.revenue - prev.revenue) / prev.revenue)
+    : 0.05;
+
+  // EBITDA margin from most recent year
+  const ebitdaMargin = (last.ebitda && last.revenue)
+    ? Math.max(0.05, last.ebitda / last.revenue) : 0.15;
+
+  // D&A % of revenue
+  const daMargin = (last.depreciation_amortization && last.revenue)
+    ? last.depreciation_amortization / last.revenue : 0.04;
+
+  // CapEx % of revenue (from CF; capex is typically negative)
+  const lastCF = cfArr[cfArr.length - 1] || {};
+  const capexMargin = (lastCF.capital_expenditures && last.revenue)
+    ? Math.abs(lastCF.capital_expenditures) / last.revenue : 0.04;
+
+  // Tax rate from most recent year
+  const taxRate = (last.income_tax && last.pretax_income && last.pretax_income > 0)
+    ? Math.min(0.35, Math.max(0.10, last.income_tax / last.pretax_income)) : 0.21;
+
+  // NWC % of revenue change (simplified to 1.5%)
+  const nwcPct = 0.015;
+
+  return {
+    revGrowth1: +(revGrowth * 100).toFixed(1),
+    revGrowth2: +(revGrowth * 100 * 0.9).toFixed(1),
+    revGrowth3: +(revGrowth * 100 * 0.8).toFixed(1),
+    revGrowth4: +(revGrowth * 100 * 0.7).toFixed(1),
+    revGrowth5: +(revGrowth * 100 * 0.6).toFixed(1),
+    ebitdaMargin: +(ebitdaMargin * 100).toFixed(1),
+    daMargin:     +(daMargin * 100).toFixed(1),
+    capexMargin:  +(capexMargin * 100).toFixed(1),
+    nwcPct:       +(nwcPct * 100).toFixed(1),
+    taxRate:      +(taxRate * 100).toFixed(1),
+    wacc:         10.0,
+    termGrowth:   2.5,
+    netDebt:      _netDebt(data),
+    sharesDil:    last.shares_diluted || null,
+  };
+}
+
+function _netDebt(data) {
+  const bsArr = data.balance_sheets.sort((a,b) => a.fiscal_year.localeCompare(b.fiscal_year));
+  const bs = bsArr[bsArr.length - 1] || {};
+  const debt = (bs.long_term_debt || 0) + (bs.short_term_debt || 0);
+  const cash = bs.cash_and_equivalents || 0;
+  return +(debt - cash).toFixed(0);
+}
+
+function _getNum(id) { return parseFloat(document.getElementById(id).value) || 0; }
+
+function calcDCF(data) {
+  const a = {
+    revGrowth: [1,2,3,4,5].map(i => _getNum(`dcf-rg${i}`) / 100),
+    ebitdaMargin: _getNum('dcf-em') / 100,
+    daMargin:     _getNum('dcf-da') / 100,
+    capexMargin:  _getNum('dcf-cx') / 100,
+    nwcPct:       _getNum('dcf-nwc') / 100,
+    taxRate:      _getNum('dcf-tax') / 100,
+    wacc:         _getNum('dcf-wacc') / 100,
+    termGrowth:   _getNum('dcf-tg') / 100,
+    netDebt:      _getNum('dcf-nd'),
+    sharesDil:    _getNum('dcf-sh'),
+  };
+
+  const isArr = data.income_statements.sort((a,b) => a.fiscal_year.localeCompare(b.fiscal_year));
+  const baseRev = (isArr[isArr.length - 1] || {}).revenue || 0;
+  const baseYear = parseInt((isArr[isArr.length - 1] || {}).fiscal_year || new Date().getFullYear());
+
+  // Project 5 years
+  const projections = [];
+  let rev = baseRev;
+  let prevRev = baseRev;
+  for (let i = 0; i < 5; i++) {
+    rev = prevRev * (1 + a.revGrowth[i]);
+    const ebitda   = rev * a.ebitdaMargin;
+    const da       = rev * a.daMargin;
+    const ebit     = ebitda - da;
+    const nopat    = ebit * (1 - a.taxRate);
+    const capex    = rev * a.capexMargin;
+    const dnwc     = (rev - prevRev) * a.nwcPct;
+    const fcf      = nopat + da - capex - dnwc;
+    const pvFactor = Math.pow(1 + a.wacc, -(i + 1));
+    projections.push({
+      year: baseYear + i + 1, rev, ebitda, ebit, nopat, da, capex, dnwc, fcf,
+      pvFcf: fcf * pvFactor,
+    });
+    prevRev = rev;
+  }
+
+  const sumPvFcf = projections.reduce((s, p) => s + p.pvFcf, 0);
+
+  // Terminal value (Gordon Growth Model)
+  const termFCF  = projections[4].fcf * (1 + a.termGrowth);
+  const termVal  = (a.wacc - a.termGrowth) > 0 ? termFCF / (a.wacc - a.termGrowth) : 0;
+  const pvTermVal = termVal * Math.pow(1 + a.wacc, -5);
+
+  const ev           = sumPvFcf + pvTermVal;
+  const equityVal    = ev - a.netDebt;
+  const impliedPrice = (a.sharesDil && a.sharesDil > 0) ? equityVal / a.sharesDil : null;
+
+  return { projections, sumPvFcf, termVal, pvTermVal, ev, equityVal, impliedPrice, a, baseYear };
+}
+
+function renderValuation(data) {
+  if (!_dcfAssumptions) _dcfAssumptions = _dcfDefaults(data);
+  const d = _dcfAssumptions;
+  const isArr = data.income_statements.sort((a,b) => a.fiscal_year.localeCompare(b.fiscal_year));
+  const lastIS = isArr[isArr.length - 1] || {};
+  const baseYear = parseInt(lastIS.fiscal_year || new Date().getFullYear());
+  const units = data.metadata.units;
+
+  const el = document.getElementById('tab-valuation');
+  el.innerHTML = `
+  <div class="dcf-layout">
+
+    <!-- Assumptions panel -->
+    <div class="dcf-assumptions">
+      <h3>DCF Assumptions</h3>
+
+      <div class="assumption-group">
+        <div class="assumption-group-label">Revenue Growth</div>
+        ${[1,2,3,4,5].map(i => `
+        <div class="assumption-row">
+          <span class="assumption-label">Year ${i} (${baseYear + i})</span>
+          <input class="assumption-input" id="dcf-rg${i}" type="number" step="0.1"
+            value="${d['revGrowth' + i]}" oninput="refreshDCF()" />
+          <span style="color:var(--muted);font-size:11px">%</span>
+        </div>`).join('')}
+      </div>
+
+      <div class="assumption-group">
+        <div class="assumption-group-label">Margins & CapEx</div>
+        <div class="assumption-row">
+          <span class="assumption-label">EBITDA Margin</span>
+          <input class="assumption-input" id="dcf-em" type="number" step="0.1" value="${d.ebitdaMargin}" oninput="refreshDCF()" />
+          <span style="color:var(--muted);font-size:11px">%</span>
+        </div>
+        <div class="assumption-row">
+          <span class="assumption-label">D&A % of Revenue</span>
+          <input class="assumption-input" id="dcf-da" type="number" step="0.1" value="${d.daMargin}" oninput="refreshDCF()" />
+          <span style="color:var(--muted);font-size:11px">%</span>
+        </div>
+        <div class="assumption-row">
+          <span class="assumption-label">CapEx % of Revenue</span>
+          <input class="assumption-input" id="dcf-cx" type="number" step="0.1" value="${d.capexMargin}" oninput="refreshDCF()" />
+          <span style="color:var(--muted);font-size:11px">%</span>
+        </div>
+        <div class="assumption-row">
+          <span class="assumption-label">ΔWorking Capital % Rev</span>
+          <input class="assumption-input" id="dcf-nwc" type="number" step="0.1" value="${d.nwcPct}" oninput="refreshDCF()" />
+          <span style="color:var(--muted);font-size:11px">%</span>
+        </div>
+        <div class="assumption-row">
+          <span class="assumption-label">Tax Rate</span>
+          <input class="assumption-input" id="dcf-tax" type="number" step="0.1" value="${d.taxRate}" oninput="refreshDCF()" />
+          <span style="color:var(--muted);font-size:11px">%</span>
+        </div>
+      </div>
+
+      <div class="assumption-group">
+        <div class="assumption-group-label">Discount Rate & Terminal</div>
+        <div class="assumption-row">
+          <span class="assumption-label">WACC</span>
+          <input class="assumption-input" id="dcf-wacc" type="number" step="0.1" value="${d.wacc}" oninput="refreshDCF()" />
+          <span style="color:var(--muted);font-size:11px">%</span>
+        </div>
+        <div class="assumption-row">
+          <span class="assumption-label">Terminal Growth Rate</span>
+          <input class="assumption-input" id="dcf-tg" type="number" step="0.1" value="${d.termGrowth}" oninput="refreshDCF()" />
+          <span style="color:var(--muted);font-size:11px">%</span>
+        </div>
+      </div>
+
+      <div class="assumption-group">
+        <div class="assumption-group-label">Capital Structure</div>
+        <div class="assumption-row">
+          <span class="assumption-label">Net Debt ($${units})</span>
+          <input class="assumption-input" id="dcf-nd" type="number" step="1" value="${d.netDebt}" oninput="refreshDCF()" style="width:86px"/>
+        </div>
+        <div class="assumption-row">
+          <span class="assumption-label">Diluted Shares (mm)</span>
+          <input class="assumption-input" id="dcf-sh" type="number" step="0.1" value="${d.sharesDil || ''}" placeholder="—" oninput="refreshDCF()" style="width:86px"/>
+        </div>
+      </div>
+
+      <button class="btn-reset-dcf" onclick="resetDCF()">↺ Reset to Defaults</button>
+    </div>
+
+    <!-- Main results -->
+    <div class="dcf-main" id="dcf-results"></div>
+  </div>`;
+
+  refreshDCF();
+}
+
+function refreshDCF() {
+  if (!_data) return;
+  const r = calcDCF(_data);
+  const units = _data.metadata.units;
+  const fmt = v => v === null ? '—' : v.toLocaleString('en-US', { maximumFractionDigits: 0 });
+  const fmtD = v => v === null ? '—' : v.toFixed(2);
+
+  // KPIs
+  const kpis = `
+  <div class="dcf-card">
+    <h3>Valuation Summary <span class="tag">DCF — 5-year projection</span></h3>
+    <div class="val-kpis">
+      <div class="val-kpi">
+        <div class="val-kpi-label">Enterprise Value</div>
+        <div class="val-kpi-value">$${fmt(r.ev)}</div>
+        <div class="val-kpi-sub">${units}</div>
+      </div>
+      <div class="val-kpi">
+        <div class="val-kpi-label">Equity Value</div>
+        <div class="val-kpi-value">$${fmt(r.equityVal)}</div>
+        <div class="val-kpi-sub">${units}</div>
+      </div>
+      <div class="val-kpi">
+        <div class="val-kpi-label">Implied Share Price</div>
+        <div class="val-kpi-value">${r.impliedPrice !== null ? '$' + fmtD(r.impliedPrice) : '—'}</div>
+        <div class="val-kpi-sub">${r.impliedPrice !== null ? 'per share' : 'enter shares above'}</div>
+      </div>
+      <div class="val-kpi">
+        <div class="val-kpi-label">PV of Terminal Value</div>
+        <div class="val-kpi-value">$${fmt(r.pvTermVal)}</div>
+        <div class="val-kpi-sub">${(r.pvTermVal / r.ev * 100).toFixed(0)}% of EV</div>
+      </div>
+    </div>
+
+    <div class="ev-bridge">
+      <div class="ev-row"><span class="ev-row-label">PV of Free Cash Flows (Yr 1–5)</span><span>$${fmt(r.sumPvFcf)}</span></div>
+      <div class="ev-row"><span class="ev-row-label">PV of Terminal Value</span><span>$${fmt(r.pvTermVal)}</span></div>
+      <div class="ev-row ev-total"><span class="ev-row-label">Enterprise Value</span><span>$${fmt(r.ev)}</span></div>
+      <div class="ev-row"><span class="ev-row-label">Less: Net Debt</span><span>${r.a.netDebt >= 0 ? '($' + fmt(r.a.netDebt) + ')' : '+$' + fmt(Math.abs(r.a.netDebt))}</span></div>
+      <div class="ev-row ev-grand"><span class="ev-row-label">Equity Value</span><span>$${fmt(r.equityVal)}</span></div>
+    </div>
+  </div>`;
+
+  // Projection table
+  const projYrs = r.projections.map(p => `<th>FY${p.year}E</th>`).join('');
+  const histYr  = r.baseYear;
+  const lastIS  = (_data.income_statements || []).sort((a,b) => a.fiscal_year.localeCompare(b.fiscal_year)).slice(-1)[0] || {};
+
+  const projRows = [
+    { label: 'Revenue',         key: 'rev',   hist: lastIS.revenue },
+    { label: 'EBITDA',          key: 'ebitda', hist: lastIS.ebitda },
+    { label: 'EBIT',            key: 'ebit',   hist: lastIS.ebit },
+    { label: '− Taxes (NOPAT)', key: 'nopat',  hist: null },
+    { label: '+ D&A',           key: 'da',     hist: lastIS.depreciation_amortization },
+    { label: '− CapEx',         key: 'capex',  hist: null },
+    { label: '− ΔNWC',          key: 'dnwc',   hist: null },
+    { label: 'Free Cash Flow',  key: 'fcf',    hist: null, cls: 'proj-fcf' },
+    { label: 'PV of FCF',       key: 'pvFcf',  hist: null, cls: 'proj-total' },
+  ];
+
+  const projTable = `
+  <div class="dcf-card">
+    <h3>Free Cash Flow Projections <span class="tag">$ in ${units}</span></h3>
+    <table class="proj-table">
+      <thead><tr>
+        <th></th>
+        <th style="color:var(--muted);opacity:0.6">FY${histYr}A</th>
+        ${projYrs}
+      </tr></thead>
+      <tbody>
+      ${projRows.map(row => `
+        <tr class="${row.cls || ''}">
+          <td>${row.label}</td>
+          <td class="proj-hist">${row.hist !== null && row.hist !== undefined ? fmt(row.hist) : '—'}</td>
+          ${r.projections.map(p => {
+            const v = row.key === 'capex' ? -p[row.key] : row.key === 'dnwc' ? -p[row.key] : p[row.key];
+            return `<td>${fmt(v)}</td>`;
+          }).join('')}
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+
+  // Sensitivity table — WACC (rows) vs Terminal Growth (cols)
+  const baseWACC = r.a.wacc * 100;
+  const baseTG   = r.a.termGrowth * 100;
+  const waccRange = [-2, -1.5, -1, -0.5, 0, 0.5, 1, 1.5, 2].map(d => +(baseWACC + d).toFixed(2));
+  const tgRange   = [-1, -0.5, 0, 0.5, 1].map(d => +(baseTG + d).toFixed(2));
+
+  const sensRows = waccRange.map(w => {
+    const cells = tgRange.map(tg => {
+      const termFCF = r.projections[4].fcf * (1 + tg / 100);
+      const tv = (w / 100 - tg / 100) > 0.001 ? termFCF / (w / 100 - tg / 100) : 0;
+      const pvTv = tv * Math.pow(1 + w / 100, -5);
+      const evS = r.sumPvFcf + pvTv;
+      const eqS = evS - r.a.netDebt;
+      const price = r.a.sharesDil > 0 ? eqS / r.a.sharesDil : eqS;
+      const isBase = Math.abs(w - baseWACC) < 0.01 && Math.abs(tg - baseTG) < 0.01;
+      const cls = isBase ? 'sens-base' : price > (r.impliedPrice || price) * 1.1 ? 'sens-high' : price < (r.impliedPrice || price) * 0.9 ? 'sens-low' : '';
+      const label = r.a.sharesDil > 0 ? '$' + fmtD(price) : '$' + fmt(eqS);
+      return `<td class="${cls}">${label}</td>`;
+    }).join('');
+    const isBaseRow = Math.abs(w - baseWACC) < 0.01;
+    return `<tr><th class="${isBaseRow ? 'axis-label' : ''}">${w.toFixed(1)}%</th>${cells}</tr>`;
+  }).join('');
+
+  const sensTable = `
+  <div class="dcf-card">
+    <h3>Sensitivity Analysis <span class="tag">${r.a.sharesDil > 0 ? 'Implied Share Price' : 'Equity Value ($' + units + ')'} · WACC vs. Terminal Growth Rate</span></h3>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:12px">
+      Rows = WACC &nbsp;|&nbsp; Columns = Terminal Growth Rate &nbsp;|&nbsp;
+      <span style="color:var(--accent)">■</span> Base case &nbsp;
+      <span class="sens-high">■</span> &gt;10% above base &nbsp;
+      <span class="sens-low">■</span> &gt;10% below base
+    </div>
+    <div class="sens-wrap">
+      <table class="sens-table">
+        <thead><tr>
+          <th>WACC \ TGR</th>
+          ${tgRange.map(tg => `<th class="${Math.abs(tg - baseTG) < 0.01 ? 'axis-label' : ''}">${tg.toFixed(1)}%</th>`).join('')}
+        </tr></thead>
+        <tbody>${sensRows}</tbody>
+      </table>
+    </div>
+  </div>`;
+
+  document.getElementById('dcf-results').innerHTML = kpis + projTable + sensTable;
+}
+
+function resetDCF() {
+  _dcfAssumptions = null;
+  if (_data) renderValuation(_data);
+}
+
+// ── Excel download ─────────────────────────────────────────────────────────
+async function downloadExcel() {
+  if (!_data) return;
+  const btn = document.querySelector('.btn-download');
+  btn.textContent = 'Generating…';
+  btn.disabled = true;
+
+  try {
+    const resp = await fetch('/download-excel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(_data),
+    });
+    if (!resp.ok) {
+      const j = await resp.json();
+      throw new Error(j.error || 'Download failed');
+    }
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = (_data.metadata.company_name || 'model').replace(/\s+/g, '_') + '_3statement_model.xlsx';
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    alert('Error: ' + err.message);
+  } finally {
+    btn.textContent = '⬇ Download Excel';
+    btn.disabled = false;
+  }
+}
+</script>
+</body>
+</html>
